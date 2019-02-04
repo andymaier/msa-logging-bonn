@@ -1,7 +1,9 @@
 package com.predic8.logging;
 
-import io.prometheus.client.Counter;
-import io.prometheus.client.Histogram;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.ModelAndView;
@@ -16,21 +18,22 @@ import static net.logstash.logback.marker.Markers.appendEntries;
 
 public class LogJsonHandlerInterceptor extends HandlerInterceptorAdapter {
 	private final Logger log = LoggerFactory.getLogger(LogJsonHandlerInterceptor.class);
-	private final Counter requests;
-	private final Histogram latency;
 
-	public LogJsonHandlerInterceptor(Counter requests, Histogram latency) {
-		this.requests = requests;
-		this.latency = latency;
+	private Map<String,RequestContext> context = new HashMap<>();
+	final MeterRegistry registry;
+
+	public LogJsonHandlerInterceptor(MeterRegistry registry) {
+		this.registry = registry;
 	}
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) throws Exception {
 
-		Histogram.Timer timer = latency.startTimer();
-		request.setAttribute("timer", timer);
+		RequestContext ctx = new RequestContext();
+		Metrics.counter("request.counter", "uri", request.getServletPath(), "method", request.getMethod()).increment();
 
-		requests.inc();
+		ctx.timer = Timer.start(registry);
+		context.put(Thread.currentThread().getName(), ctx);
 
 		Map<String, Object> entries = new HashMap<>();
 		entries.put("method", request.getMethod());
@@ -42,15 +45,19 @@ public class LogJsonHandlerInterceptor extends HandlerInterceptorAdapter {
 	}
 
 	@Override
-	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object o, ModelAndView modelAndView) throws Exception {
-		Histogram.Timer timer = (Histogram.Timer) request.getAttribute("timer");
+	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object o, ModelAndView modelAndView) {
 
-		timer.observeDuration();
+		RequestContext ctx = context.get(Thread.currentThread().getName());
+
+		ctx.timer.stop(registry.timer("latency", "statuscode", ""+response.getStatus()));
 
 		Map<String, Object> entries = new HashMap<>();
 		entries.put("status_code", response.getStatus());
-		entries.put("elapsed_time", timer.observeDuration());
 
 		log.info(appendEntries(entries), "{}");
+	}
+
+	class RequestContext {
+		Timer.Sample timer;
 	}
 }

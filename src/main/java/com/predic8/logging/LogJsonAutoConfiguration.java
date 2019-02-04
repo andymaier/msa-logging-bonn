@@ -1,7 +1,8 @@
 package com.predic8.logging;
 
-import io.prometheus.client.Counter;
-import io.prometheus.client.Histogram;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -9,31 +10,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 @Configuration
 public class LogJsonAutoConfiguration {
-	@Bean
-	public Counter requests() {
-		return Counter
-			.build()
-			.name("requests_total")
-			.help("Total requests.")
-			.register();
+
+	final MeterRegistry registry;
+
+	public LogJsonAutoConfiguration(MeterRegistry registry) {
+		this.registry = registry;
 	}
 
 	@Bean
-	public Histogram latency() {
-		return Histogram
-			.build()
-			.name("requests_latency_seconds")
-			.help("Request latency in seconds.")
-			.register();
-	}
-
-	@Bean
-	public LogJsonHandlerInterceptor logJsonHandlerInterceptor(Counter requests, Histogram latency) {
-		return new LogJsonHandlerInterceptor(requests, latency);
+	public LogJsonHandlerInterceptor logJsonHandlerInterceptor() {
+		return new LogJsonHandlerInterceptor( registry);
 	}
 
 	@Configuration
 	static class WebConfig extends WebMvcConfigurerAdapter {
+
 		private final LogJsonHandlerInterceptor logJsonHandlerInterceptor;
 
 		WebConfig(LogJsonHandlerInterceptor logJsonHandlerInterceptor) {
