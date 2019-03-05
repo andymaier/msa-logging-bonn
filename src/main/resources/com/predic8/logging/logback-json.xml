@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <included>
+
 	<appender name="stash"
 	          class="net.logstash.logback.appender.LogstashTcpSocketAppender">
 		<destination>localhost:5000</destination>

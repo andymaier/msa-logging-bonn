@@ -1,17 +1,15 @@
 package com.predic8.logging;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class LogJsonAutoConfiguration {
 
-	final MeterRegistry registry;
+	private final MeterRegistry registry;
 
 	public LogJsonAutoConfiguration(MeterRegistry registry) {
 		this.registry = registry;
@@ -23,7 +21,7 @@ public class LogJsonAutoConfiguration {
 	}
 
 	@Configuration
-	static class WebConfig extends WebMvcConfigurerAdapter {
+	static class WebConfig implements WebMvcConfigurer {
 
 		private final LogJsonHandlerInterceptor logJsonHandlerInterceptor;
 

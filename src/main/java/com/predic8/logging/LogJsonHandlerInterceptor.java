@@ -1,6 +1,5 @@
 package com.predic8.logging;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Timer;
@@ -17,22 +16,27 @@ import java.util.Map;
 import static net.logstash.logback.marker.Markers.appendEntries;
 
 public class LogJsonHandlerInterceptor extends HandlerInterceptorAdapter {
+
 	private final Logger log = LoggerFactory.getLogger(LogJsonHandlerInterceptor.class);
 
 	private Map<String,RequestContext> context = new HashMap<>();
-	final MeterRegistry registry;
+	private final MeterRegistry registry;
 
-	public LogJsonHandlerInterceptor(MeterRegistry registry) {
+	LogJsonHandlerInterceptor(MeterRegistry registry) {
 		this.registry = registry;
 	}
 
 	@Override
-	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) throws Exception {
+	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) {
 
 		RequestContext ctx = new RequestContext();
+
 		Metrics.counter("request.counter", "uri", request.getServletPath(), "method", request.getMethod()).increment();
 
+		Metrics.gauge("fuellstand", 10);
+
 		ctx.timer = Timer.start(registry);
+
 		context.put(Thread.currentThread().getName(), ctx);
 
 		Map<String, Object> entries = new HashMap<>();
