@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <included>
 
+	<springProperty scope="context" name="service" source="spring.application.name"/>
+	<springProperty scope="context" name="group-id" source="spring.kafka.consumer.group-id"/>
+
 	<appender name="stash"
 	          class="net.logstash.logback.appender.LogstashTcpSocketAppender">
 		<destination>localhost:5000</destination>
